@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Jfrintrop\EnvValidator\Laravel\Facades;
+
+use Illuminate\Support\Facades\Facade;
+use Jfrintrop\EnvValidator\EnvValidator as EnvValidatorService;
+
+/**
+ * @method static array validate()
+ * @method static bool passes()
+ * @method static bool fails()
+ * @method static array errors()
+ * @method static EnvValidatorService rules(array $rules)
+ * @method static EnvValidatorService addRules(array $rules)
+ * @method static EnvValidatorService messages(array $messages)
+ * @method static EnvValidatorService using(array $source)
+ *
+ * @see EnvValidatorService
+ */
+final class EnvValidator extends Facade
+{
+    protected static function getFacadeAccessor(): string
+    {
+        return 'env-validator';
+    }
+}

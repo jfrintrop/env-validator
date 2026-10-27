@@ -1,0 +1,172 @@
+# Env Validator
+
+[![tests](https://github.com/jfrintrop/env-validator/actions/workflows/tests.yml/badge.svg)](https://github.com/jfrintrop/env-validator/actions/workflows/tests.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/jfrintrop/env-validator.svg)](https://packagist.org/packages/jfrintrop/env-validator)
+[![License](https://img.shields.io/packagist/l/jfrintrop/env-validator.svg)](LICENSE)
+
+Validate your environment variables against a schema — **fail fast at boot or in CI**, using the Laravel validation rules you already know.
+
+A missing or mistyped environment variable should blow up loudly when you deploy, not quietly three screens into a user flow. `env-validator` lets you declare exactly which variables your app needs, their types, and their allowed values — then checks them before anything else runs.
+
+```php
+EnvValidator::make([
+    'APP_ENV'   => 'required|in:local,staging,production',
+    'APP_DEBUG' => 'required|boolean',
+    'APP_URL'   => 'required|url',
+    'DB_PORT'   => 'required|integer|between:1,65535',
+    'MAIL_FROM' => 'nullable|email',
+])->validate();
+```
+
+If something is wrong, you get a clear, aggregated error instead of a surprise later:
+
+```
+Environment validation failed with 2 problems:
+  - The APP_ENV environment variable must be one of: local, staging, production.
+  - The DB_PORT environment variable must be an integer.
+```
+
+## Why
+
+- **The syntax you already know.** It's Laravel validation rules under the hood — `required`, `in`, `boolean`, `integer`, `url`, `email`, `between`, `regex`, `nullable`, and the rest. No new DSL to learn.
+- **Env-aware typing.** Environment variables arrive as strings. `APP_DEBUG=false` is correctly understood as a boolean, `null`/`empty` keywords and quoted values are handled just like Laravel's own `env()` helper.
+- **Fail fast, everywhere.** Validate automatically on boot for web requests, or run `php artisan env:validate` as a one-line CI gate with a proper exit code.
+- **Works standalone.** No framework required — the core builds its own validator, so you can use it in any PHP project, not just Laravel.
+- **Tiny and focused.** One job, done well. No config sprawl.
+
+## Installation
+
+```bash
+composer require jfrintrop/env-validator
+```
+
+Requires PHP 8.1+ and works with Laravel 10, 11, and 12. In a Laravel app the service provider is auto-discovered — nothing else to wire up.
+
+## Usage in Laravel
+
+### 1. Publish the config
+
+```bash
+php artisan vendor:publish --tag=env-validator-config
+```
+
+### 2. Declare your schema
+
+In `config/env-validator.php`:
+
+```php
+return [
+    'validate_on_boot' => env('ENV_VALIDATOR_ON_BOOT', false),
+
+    'rules' => [
+        'APP_ENV'   => 'required|in:local,staging,production',
+        'APP_DEBUG' => 'required|boolean',
+        'APP_URL'   => 'required|url',
+        'DB_PORT'   => 'required|integer|between:1,65535',
+        'MAIL_FROM' => 'nullable|email',
+    ],
+];
+```
+
+Only the keys you list are checked; every other environment variable is left untouched.
+
+### 3. Validate
+
+Run it as a CI gate or a pre-deploy check:
+
+```bash
+php artisan env:validate
+```
+
+```
+  INFO  Environment is valid (5 variables checked).
+```
+
+On failure it prints each problem and exits with code `1`, so your pipeline stops:
+
+```
+  ERROR  Environment validation failed:
+
+  ⇂ The APP_ENV environment variable must be one of: local, staging, production.
+  ⇂ The DB_PORT environment variable must be an integer.
+```
+
+### Validate automatically on boot
+
+Set `validate_on_boot` to `true` (or `ENV_VALIDATOR_ON_BOOT=true`) and a misconfigured environment fails immediately on web requests, before your app does any work.
+
+Console commands are **skipped by default** so a bad `.env` never locks you out of artisan while you fix it. Flip `validate_in_console` to `true` if you want the check to run for commands as well.
+
+## Usage without Laravel
+
+The core has no framework dependency:
+
+```php
+use Jfrintrop\EnvValidator\EnvValidator;
+use Jfrintrop\EnvValidator\Exceptions\EnvValidationException;
+
+try {
+    $validated = EnvValidator::make([
+        'DB_PORT'  => 'required|integer|between:1,65535',
+        'APP_URL'  => 'required|url',
+    ])->validate();
+} catch (EnvValidationException $e) {
+    fwrite(STDERR, $e->getMessage().PHP_EOL);
+    exit(1);
+}
+```
+
+### Validating an explicit array
+
+Handy for tests, or for checking a `.env` you've parsed yourself:
+
+```php
+$valid = EnvValidator::make(['DB_PORT' => 'required|integer'])
+    ->using(['DB_PORT' => '5432'])
+    ->passes(); // true
+```
+
+## API
+
+| Method | Description |
+| --- | --- |
+| `EnvValidator::make(array $rules)` | Create a validator for the given schema. |
+| `->using(array $source)` | Validate against this array instead of the live environment. |
+| `->addRules(array $rules)` | Merge extra rules into the schema. |
+| `->messages(array $messages)` | Override default error messages (keyed by `VAR.rule` or `rule`). |
+| `->validate(): array` | Validate; returns the validated values, throws `EnvValidationException` on failure. |
+| `->passes(): bool` / `->fails(): bool` | Boolean check without throwing. |
+| `->errors(): array` | The error messages, keyed by variable name. |
+
+### Custom messages
+
+```php
+EnvValidator::make(['DB_PORT' => 'required|integer|between:1,65535'])
+    ->messages([
+        'DB_PORT.between' => 'DB_PORT must be a valid TCP port (1-65535).',
+    ])
+    ->validate();
+```
+
+## Testing
+
+```bash
+composer install
+composer test
+```
+
+## Roadmap
+
+Ideas for future releases (feedback welcome via issues):
+
+- Typed casting of `validate()` results (e.g. `integer` → `int`).
+- Strict mode that flags environment variables not declared in the schema.
+- Generating a `.env.example` from the schema.
+
+## Contributing
+
+Issues and pull requests are welcome. Please add a test for any behaviour change.
+
+## License
+
+The MIT License (MIT). See [LICENSE](LICENSE).
