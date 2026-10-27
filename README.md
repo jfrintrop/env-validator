@@ -161,6 +161,36 @@ $valid = EnvValidator::make(['DB_PORT' => 'required|integer'])
     ->passes(); // true
 ```
 
+## Strict mode
+
+Strict mode catches the opposite problem: variables that are *present but not
+declared* in your schema — typos, copy-paste leftovers, config drift. It needs an
+explicit source (the live environment holds unrelated system variables like
+`PATH`), so pass the set you want to lint via `using()`:
+
+```php
+EnvValidator::make([
+    'APP_ENV' => 'required|in:local,production',
+    'DB_PORT' => 'required|integer',
+])->using([
+    'APP_ENV' => 'production',
+    'DB_PORT' => '5432',
+    'DB_PROT' => '5432',   // typo — not in the schema
+])->strict()->validate();
+// EnvValidationException: The DB_PROT environment variable is not declared in the schema.
+```
+
+In Laravel, lint your `.env` file against the schema straight from the CLI — ideal
+as a CI check:
+
+```bash
+php artisan env:validate --strict                 # lints .env
+php artisan env:validate --strict --env-file=.env.production
+```
+
+This checks both the values *and* that the file contains no variable missing from
+your schema.
+
 ## Typed values
 
 Environment variables arrive as strings. Call `->cast()` to get `validate()` to
@@ -192,6 +222,7 @@ opt in. Nullable variables that are absent stay `null`.
 | `EnvValidator::make(array $rules)` | Create a validator for the given schema. |
 | `->using(array $source)` | Validate against this array instead of the live environment. |
 | `->cast(bool $cast = true)` | Return typed values from `validate()` (`int`, `float`, `bool`). |
+| `->strict(bool $strict = true)` | Also fail on source variables not declared in the schema (needs `using()`). |
 | `->addRules(array $rules)` | Merge extra rules into the schema. |
 | `->messages(array $messages)` | Override default error messages (keyed by `VAR.rule` or `rule`). |
 | `->validate(): array` | Validate; returns the validated values, throws `EnvValidationException` on failure. |
@@ -218,9 +249,8 @@ composer test
 
 ## Roadmap
 
-Ideas for future releases (feedback welcome via issues):
-
-- Strict mode that flags environment variables not declared in the schema.
+The core feature set is complete. Have an idea or a missing rule helper? Open an
+issue — contributions are welcome.
 
 ## Contributing
 

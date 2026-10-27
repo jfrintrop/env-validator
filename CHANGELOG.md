@@ -5,6 +5,14 @@ All notable changes to `env-validator` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0]
+
+### Added
+- `EnvValidator::strict()` to also fail on source variables not declared in the
+  schema (requires an explicit `using()` source).
+- `php artisan env:validate --strict [--env-file=.env]` to lint an env file
+  against the schema, including stray/undeclared variables.
+
 ## [1.2.0]
 
 ### Added

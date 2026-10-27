@@ -35,6 +35,8 @@ final class EnvValidator
 
     private bool $cast = false;
 
+    private bool $strict = false;
+
     private ?ValidatorContract $lastValidator = null;
 
     /**
@@ -114,6 +116,18 @@ final class EnvValidator
     }
 
     /**
+     * Also fail when the source contains variables not declared in the schema
+     * (typo and stray-variable detection). Requires an explicit source via
+     * using() — the live environment holds unrelated system variables.
+     */
+    public function strict(bool $strict = true): self
+    {
+        $this->strict = $strict;
+
+        return $this;
+    }
+
+    /**
      * Validate and return the validated values. Throws on failure.
      *
      * @return array<string, mixed>
@@ -124,8 +138,10 @@ final class EnvValidator
     {
         $validator = $this->runValidator();
 
-        if ($validator->fails()) {
-            throw EnvValidationException::withErrors($validator->errors()->messages());
+        $errors = array_merge($validator->errors()->messages(), $this->strictErrors());
+
+        if ($errors !== []) {
+            throw EnvValidationException::withErrors($errors);
         }
 
         $validated = $validator->validated();
@@ -143,7 +159,7 @@ final class EnvValidator
 
     public function passes(): bool
     {
-        return $this->runValidator()->passes();
+        return $this->runValidator()->passes() && $this->strictErrors() === [];
     }
 
     public function fails(): bool
@@ -156,7 +172,37 @@ final class EnvValidator
      */
     public function errors(): array
     {
-        return $this->runValidator()->errors()->messages();
+        return array_merge($this->runValidator()->errors()->messages(), $this->strictErrors());
+    }
+
+    /**
+     * Errors for variables present in the source but absent from the schema.
+     *
+     * @return array<string, array<int, string>>
+     *
+     * @throws \LogicException when strict mode is used against the live environment
+     */
+    private function strictErrors(): array
+    {
+        if (! $this->strict) {
+            return [];
+        }
+
+        $keys = ($this->env ?? new Env())->keys();
+
+        if ($keys === null) {
+            throw new \LogicException(
+                'Strict mode requires an explicit source via using(); the live environment '
+                .'contains system variables that are not part of your schema.'
+            );
+        }
+
+        $errors = [];
+        foreach (array_diff($keys, array_keys($this->rules)) as $key) {
+            $errors[$key] = [sprintf('The %s environment variable is not declared in the schema.', $key)];
+        }
+
+        return $errors;
     }
 
     /**

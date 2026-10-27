@@ -61,6 +61,17 @@ final class Env
         return $values;
     }
 
+    /**
+     * The variable names in an explicit source, or null when reading the live
+     * environment (whose keys include unrelated system variables).
+     *
+     * @return array<int, string>|null
+     */
+    public function keys(): ?array
+    {
+        return $this->source === null ? null : array_keys($this->source);
+    }
+
     private function raw(string $key): ?string
     {
         if ($this->source !== null) {
