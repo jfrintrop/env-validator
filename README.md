@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/jfrintrop/env-validator/actions/workflows/tests.yml/badge.svg)](https://github.com/jfrintrop/env-validator/actions/workflows/tests.yml)
 [![Packagist Version](https://img.shields.io/packagist/v/jfrintrop/env-validator.svg)](https://packagist.org/packages/jfrintrop/env-validator)
-[![License](https://img.shields.io/packagist/l/jfrintrop/env-validator.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/jfrintrop/env-validator.svg)](LICENSE)
 
 Validate your environment variables against a schema — **fail fast at boot or in CI**, using the Laravel validation rules you already know.
 
@@ -40,7 +40,7 @@ Environment validation failed with 2 problems:
 composer require jfrintrop/env-validator
 ```
 
-Requires PHP 8.1+ and works with Laravel 10, 11, and 12. In a Laravel app the service provider is auto-discovered — nothing else to wire up.
+Requires PHP 8.1+ and is compatible with Laravel 10, 11, and 12. The test suite runs against Laravel 12 — Laravel 10 and 11 are past their active-support window, so their latest public releases can no longer be installed from scratch in CI, but the package itself works on existing projects running them. In a Laravel app the service provider is auto-discovered — nothing else to wire up.
 
 ## Usage in Laravel
 
