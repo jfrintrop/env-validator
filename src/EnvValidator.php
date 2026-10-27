@@ -117,6 +117,14 @@ final class EnvValidator
         return $validator->validated();
     }
 
+    /**
+     * Render this schema as the contents of a `.env.example` file.
+     */
+    public function example(?string $header = null): string
+    {
+        return EnvExampleGenerator::fromRules($this->rules)->generate($header);
+    }
+
     public function passes(): bool
     {
         return $this->runValidator()->passes();

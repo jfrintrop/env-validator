@@ -12,6 +12,7 @@ use Jfrintrop\EnvValidator\EnvValidator as EnvValidatorService;
  * @method static bool passes()
  * @method static bool fails()
  * @method static array errors()
+ * @method static string example(?string $header = null)
  * @method static EnvValidatorService rules(array $rules)
  * @method static EnvValidatorService addRules(array $rules)
  * @method static EnvValidatorService messages(array $messages)

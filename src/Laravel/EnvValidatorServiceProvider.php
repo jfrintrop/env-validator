@@ -7,6 +7,7 @@ namespace Jfrintrop\EnvValidator\Laravel;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Jfrintrop\EnvValidator\EnvValidator;
+use Jfrintrop\EnvValidator\Laravel\Commands\GenerateEnvExampleCommand;
 use Jfrintrop\EnvValidator\Laravel\Commands\ValidateEnvCommand;
 
 final class EnvValidatorServiceProvider extends ServiceProvider
@@ -32,7 +33,10 @@ final class EnvValidatorServiceProvider extends ServiceProvider
                 __DIR__.'/../../config/env-validator.php' => $this->app->configPath('env-validator.php'),
             ], 'env-validator-config');
 
-            $this->commands([ValidateEnvCommand::class]);
+            $this->commands([
+                ValidateEnvCommand::class,
+                GenerateEnvExampleCommand::class,
+            ]);
         }
 
         $this->validateOnBoot();
