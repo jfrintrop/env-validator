@@ -17,6 +17,7 @@ use Jfrintrop\EnvValidator\EnvValidator as EnvValidatorService;
  * @method static EnvValidatorService addRules(array $rules)
  * @method static EnvValidatorService messages(array $messages)
  * @method static EnvValidatorService using(array $source)
+ * @method static EnvValidatorService cast(bool $cast = true)
  *
  * @see EnvValidatorService
  */

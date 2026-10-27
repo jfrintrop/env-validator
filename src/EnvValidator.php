@@ -33,6 +33,8 @@ final class EnvValidator
 
     private ?Env $env = null;
 
+    private bool $cast = false;
+
     private ?ValidatorContract $lastValidator = null;
 
     /**
@@ -100,6 +102,18 @@ final class EnvValidator
     }
 
     /**
+     * Cast validated values to their native PHP type based on the rules
+     * (`integer`/`int` → int, `numeric` → int|float, `boolean` → bool).
+     * Off by default so the raw validated strings are returned.
+     */
+    public function cast(bool $cast = true): self
+    {
+        $this->cast = $cast;
+
+        return $this;
+    }
+
+    /**
      * Validate and return the validated values. Throws on failure.
      *
      * @return array<string, mixed>
@@ -114,7 +128,9 @@ final class EnvValidator
             throw EnvValidationException::withErrors($validator->errors()->messages());
         }
 
-        return $validator->validated();
+        $validated = $validator->validated();
+
+        return $this->cast ? $this->castValues($validated) : $validated;
     }
 
     /**
@@ -141,6 +157,63 @@ final class EnvValidator
     public function errors(): array
     {
         return $this->runValidator()->errors()->messages();
+    }
+
+    /**
+     * @param array<string, mixed> $validated
+     *
+     * @return array<string, mixed>
+     */
+    private function castValues(array $validated): array
+    {
+        foreach ($validated as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            $names = $this->ruleNames($key);
+
+            if (in_array('integer', $names, true) || in_array('int', $names, true)) {
+                $validated[$key] = (int) $value;
+            } elseif (in_array('boolean', $names, true)) {
+                $validated[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            } elseif (in_array('numeric', $names, true)) {
+                $validated[$key] = $this->toNumber($value);
+            }
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Lower-cased rule names for a single key (without their parameters).
+     *
+     * @return array<int, string>
+     */
+    private function ruleNames(string $key): array
+    {
+        $ruleSet = $this->rules[$key] ?? [];
+        $parts = is_string($ruleSet) ? explode('|', $ruleSet) : $ruleSet;
+
+        $names = [];
+        foreach ((array) $parts as $part) {
+            if (is_string($part)) {
+                $names[] = strtolower(trim(explode(':', $part, 2)[0]));
+            }
+        }
+
+        return $names;
+    }
+
+    private function toNumber(mixed $value): int|float
+    {
+        if (is_int($value) || is_float($value)) {
+            return $value;
+        }
+
+        $string = (string) $value;
+
+        return preg_match('/^[+-]?\d+$/', $string) === 1 ? (int) $string : (float) $string;
     }
 
     private function runValidator(): ValidatorContract

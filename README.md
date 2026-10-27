@@ -161,12 +161,37 @@ $valid = EnvValidator::make(['DB_PORT' => 'required|integer'])
     ->passes(); // true
 ```
 
+## Typed values
+
+Environment variables arrive as strings. Call `->cast()` to get `validate()` to
+return them with their native PHP type, inferred from the rules:
+
+```php
+$config = EnvValidator::make([
+    'DB_PORT'   => 'required|integer',
+    'APP_DEBUG' => 'required|boolean',
+    'TIMEOUT'   => 'required|numeric',
+])->cast()->validate();
+
+$config['DB_PORT'];   // int    5432
+$config['APP_DEBUG']; // bool   true
+$config['TIMEOUT'];   // float  2.5
+```
+
+- `integer` / `int` → `int`
+- `numeric` → `int` when the value is a whole number, otherwise `float`
+- `boolean` → `bool`
+
+Casting is off by default, so the raw validated strings are returned unless you
+opt in. Nullable variables that are absent stay `null`.
+
 ## API
 
 | Method | Description |
 | --- | --- |
 | `EnvValidator::make(array $rules)` | Create a validator for the given schema. |
 | `->using(array $source)` | Validate against this array instead of the live environment. |
+| `->cast(bool $cast = true)` | Return typed values from `validate()` (`int`, `float`, `bool`). |
 | `->addRules(array $rules)` | Merge extra rules into the schema. |
 | `->messages(array $messages)` | Override default error messages (keyed by `VAR.rule` or `rule`). |
 | `->validate(): array` | Validate; returns the validated values, throws `EnvValidationException` on failure. |
@@ -195,7 +220,6 @@ composer test
 
 Ideas for future releases (feedback welcome via issues):
 
-- Typed casting of `validate()` results (e.g. `integer` → `int`).
 - Strict mode that flags environment variables not declared in the schema.
 
 ## Contributing
