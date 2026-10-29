@@ -1,4 +1,4 @@
-    # Env Validator
+# Env Validator
 
 [English](README.md) | **Deutsch**
 
@@ -8,70 +8,33 @@
 
 Validiere deine Umgebungsvariablen gegen ein Schema – **schnell scheitern beim Booten oder in der CI**, mit den Laravel-Validierungsregeln, die du bereits kennst.
 
-Eine fehlende oder falsch typisierte Umgebungsvariable sollte beim Deployment laut knallen – nicht erst drei Bildschirme tief in einem Nutzer-Flow. Mit `env-validator` legst du genau fest, welche Variablen deine App braucht, welche Typen sie haben und welche Werte erlaubt sind – und prüfst das, bevor irgendetwas anderes läuft.
-
-```php
-EnvValidator::make([
-    'APP_ENV'   => 'required|in:local,staging,production',
-    'APP_DEBUG' => 'required|boolean',
-    'APP_URL'   => 'required|url',
-    'DB_PORT'   => 'required|integer|between:1,65535',
-    'MAIL_FROM' => 'nullable|email',
-])->validate();
-```
-
-Wenn etwas nicht stimmt, bekommst du eine klare, gesammelte Fehlermeldung statt einer späten Überraschung:
-
-```
-Environment validation failed with 2 problems:
-  - The APP_ENV environment variable must be one of: local, staging, production.
-  - The DB_PORT environment variable must be an integer.
-```
-
-## Warum
-
-- **Die Syntax, die du schon kennst.** Unter der Haube arbeiten Laravel-Validierungsregeln – `required`, `in`, `boolean`, `integer`, `url`, `email`, `between`, `regex`, `nullable` und alle weiteren. Keine neue DSL zu lernen.
-- **Typbewusst für Umgebungsvariablen.** Umgebungsvariablen kommen als Strings an. `APP_DEBUG=false` wird korrekt als Boolean verstanden; `null`-/`empty`-Schlüsselwörter und Werte in Anführungszeichen werden genauso behandelt wie vom `env()`-Helper von Laravel.
-- **Überall schnell scheitern.** Validiere automatisch beim Booten für Web-Requests, oder nutze `php artisan env:validate` als einzeiliges CI-Gate mit korrektem Exit-Code.
-- **Funktioniert eigenständig.** Kein Framework nötig – der Kern baut seinen eigenen Validator, du kannst ihn also in jedem PHP-Projekt nutzen, nicht nur in Laravel.
-- **Klein und fokussiert.** Eine Aufgabe, gut gemacht. Kein Konfigurations-Wildwuchs.
+Eine fehlende oder falsch typisierte Umgebungsvariable sollte beim Deployment laut knallen – nicht erst drei Bildschirme tief in einem Nutzer-Flow.
 
 **[Live-Demo →](https://jfrintrop.github.io/env-validator/)**
 
-## Warum nicht ein anderes Paket?
+## Was es kann
 
-Andere Laravel-Pakete validieren ebenfalls `.env`-Dateien – zum Beispiel
-[mathiasgrimm/laravel-env-validator](https://packagist.org/packages/mathiasgrimm/laravel-env-validator)
-(letztes Release 2016), [melihovv/laravel-env-validator](https://packagist.org/packages/melihovv/laravel-env-validator)
-(2020) und [teun/laravel-environment-config-validator](https://packagist.org/packages/teun/laravel-environment-config-validator).
-`env-validator` ist für aktuelles Laravel (10–12) und PHP 8.1+ gebaut und bringt Dinge mit,
-die man sonst selbst skripten muss:
+- **Gegen ein Schema validieren** – Pflichtvariablen, Typen und erlaubte Werte mit normalen Laravel-Validierungsregeln. → [Schnellstart](#schnellstart)
+- **Typbewusst für Umgebungsvariablen** – `"false"` ist ein Boolean, `null`-/`empty`-Schlüsselwörter und Werte in Anführungszeichen verhalten sich wie bei Laravels `env()`. → [Schnellstart](#schnellstart)
+- **Beim Booten scheitern** – optionale automatische Prüfung für Web-Requests. → [Beim Booten validieren](#beim-booten-validieren)
+- **CI-Gate** – `php artisan env:validate` mit korrekten Exit-Codes. → [Befehle](#befehle)
+- **Regeln pro Umgebung** – z. B. `STRIPE_KEY` nur in `production` Pflicht, `APP_DEBUG` dort `false`. → [Umgebungsspezifische Regeln](#umgebungsspezifische-regeln)
+- **Strict-Modus** – findet Tippfehler und überzählige Variablen (`DB_PROT`), die nicht im Schema stehen. → [Strict-Modus](#strict-modus)
+- **`.env.example` generieren** – aus demselben Schema, mit Kommentaren zu den Einschränkungen. → [Die .env.example-Datei](#die-envexample-datei)
+- **Drift-Check** – lässt die CI fehlschlagen, wenn `.env.example` und Schema auseinanderlaufen. → [Die .env.example-Datei](#die-envexample-datei)
+- **CI-freundliche Ausgabe** – Text, JSON oder GitHub-Actions-Annotationen am Pull Request. → [CI-Ausgabeformate](#ci-ausgabeformate)
+- **Typisierte Ergebnisse** – optional `int`-, `float`- und `bool`-Werte. → [Typisierte Werte](#typisierte-werte)
+- **Eigene Meldungen** – jeden Fehlertext überschreiben. → [Eigene Meldungen](#eigene-meldungen)
+- **Funktioniert eigenständig** – der Kern braucht kein Framework, jedes PHP-8.1+-Projekt genügt. → [Verwendung ohne Laravel](#verwendung-ohne-laravel)
 
-- **Regeln pro Umgebung** – z. B. `STRIPE_KEY` nur in `production` Pflicht.
-- **`.env.example`-Generierung *und* CI-Drift-Check** aus demselben Schema.
-- **Strict-Modus**, um Tippfehler und überzählige Variablen zu finden.
-- **Typisierte Ergebnisse** (`int`, `float`, `bool`) per `->cast()`.
-- **Framework-freier Kern** – auch außerhalb von Laravel nutzbar.
-
-## Installation
+## Schnellstart
 
 ```bash
 composer require jfrintrop/env-validator
-```
-
-Benötigt PHP 8.1+ und ist kompatibel mit Laravel 10, 11 und 12. Die Testsuite läuft gegen Laravel 12 – Laravel 10 und 11 sind außerhalb ihres aktiven Support-Zeitraums, ihre letzten öffentlichen Releases lassen sich in der CI daher nicht mehr frisch installieren, das Paket selbst funktioniert aber in bestehenden Projekten mit diesen Versionen. In einer Laravel-App wird der Service Provider automatisch erkannt – du musst nichts weiter einrichten.
-
-## Verwendung in Laravel
-
-### 1. Konfiguration veröffentlichen
-
-```bash
 php artisan vendor:publish --tag=env-validator-config
 ```
 
-### 2. Schema deklarieren
-
-In `config/env-validator.php`:
+Deklariere dein Schema in `config/env-validator.php`:
 
 ```php
 return [
@@ -87,11 +50,7 @@ return [
 ];
 ```
 
-Nur die aufgeführten Schlüssel werden geprüft; alle anderen Umgebungsvariablen bleiben unangetastet.
-
-### 3. Validieren
-
-Als CI-Gate oder Pre-Deploy-Check:
+Nur die aufgeführten Schlüssel werden geprüft; alle anderen Umgebungsvariablen bleiben unangetastet. Dann ausführen:
 
 ```bash
 php artisan env:validate
@@ -101,7 +60,7 @@ php artisan env:validate
   INFO  Environment is valid (5 variables checked).
 ```
 
-Bei einem Fehler gibt der Befehl jedes Problem aus und beendet sich mit Exit-Code `1`, sodass deine Pipeline stoppt:
+Bei einem Fehler bekommst du alle Probleme auf einmal und Exit-Code `1`, sodass deine Pipeline stoppt:
 
 ```
   ERROR  Environment validation failed:
@@ -110,102 +69,34 @@ Bei einem Fehler gibt der Befehl jedes Problem aus und beendet sich mit Exit-Cod
   ⇂ The DB_PORT environment variable must be an integer.
 ```
 
-### Automatisch beim Booten validieren
+Benötigt PHP 8.1+ und ist kompatibel mit Laravel 10, 11 und 12. Der Service Provider wird automatisch erkannt. Die Testsuite läuft gegen Laravel 12 – Laravel 10 und 11 sind außerhalb ihres aktiven Support-Zeitraums, ihre letzten öffentlichen Releases lassen sich in der CI daher nicht mehr frisch installieren, das Paket selbst funktioniert aber in bestehenden Projekten mit diesen Versionen.
+
+## Befehle
+
+| Befehl | Was er tut |
+| --- | --- |
+| `php artisan env:validate` | Validiert die Umgebung gegen das Schema. |
+| `… --strict` | Schlägt auch bei Variablen in der Env-Datei fehl, die nicht im Schema stehen. |
+| `… --env-file=.env.production` | Welche Datei im Strict-Modus geprüft wird (Standard `.env`). |
+| `… --format=text\|json\|github` | Ausgabeformat (Standard `text`). |
+| `php artisan env:example` | Generiert `.env.example` aus dem Schema. |
+| `… --print` | Ausgeben statt eine Datei zu schreiben. |
+| `… --path=.env.dist` | An anderen Ort schreiben. |
+| `… --force` | Vorhandene Datei überschreiben. |
+| `… --check` | Schlägt fehl, wenn die Datei nicht genau die Variablen des Schemas auflistet. |
+| `… --format=text\|json\|github` | Ausgabeformat für `--check`. |
+
+Exit-Codes: `0` Erfolg, `1` Validierungsfehler oder Drift, `2` unbekanntes `--format`.
+
+## Beim Booten validieren
 
 Setze `validate_on_boot` auf `true` (oder `ENV_VALIDATOR_ON_BOOT=true`), und eine fehlerhafte Umgebung schlägt bei Web-Requests sofort fehl – bevor deine App irgendeine Arbeit erledigt.
 
 Konsolenbefehle werden **standardmäßig übersprungen**, damit dich eine kaputte `.env` nicht aus artisan aussperrt, während du sie reparierst. Setze `validate_in_console` auf `true`, wenn die Prüfung auch für Befehle laufen soll.
 
-### Eine `.env.example` generieren
-
-Halte deine `.env.example` mit dem Schema synchron – generiere sie aus denselben Regeln:
-
-```bash
-php artisan env:example
-```
-
-```ini
-# Generated by env-validator — the environment variables this app expects.
-
-# required · one of: local, staging, production
-APP_ENV=local
-
-# required · boolean (true/false)
-APP_DEBUG=false
-
-# required · URL
-APP_URL=
-
-# required · integer · between 1 and 65535
-DB_PORT=
-
-# optional · email
-MAIL_FROM=
-```
-
-Jede Variable erhält einen Kommentar mit ihren Einschränkungen und einen sinnvollen Platzhalter (den ersten erlaubten Wert bei `in:`-Regeln, `false` bei Booleans). Optionen:
-
-```bash
-php artisan env:example --print              # ausgeben statt eine Datei zu schreiben
-php artisan env:example --path=.env.dist     # an anderen Ort schreiben
-php artisan env:example --force              # vorhandene Datei überschreiben
-```
-
-### `.env.example` vor Drift schützen
-
-Lass in der CI den Build fehlschlagen, wenn die `.env.example` nicht mehr genau die
-Variablen deines Schemas auflistet:
-
-```bash
-php artisan env:example --check
-php artisan env:example --check --path=.env.dist
-```
-
-```
-  ERROR  .env.example is out of sync with the schema:
-
-  ⇂ DB_PORT is declared in the schema but missing from the file.
-  ⇂ OLD_VAR is in the file but not declared in the schema.
-```
-
-Verglichen werden nur Variablennamen; von Hand angepasste Platzhalter und Kommentare
-bleiben unberührt. Bei Drift ist der Exit-Code `1`.
-
-## Verwendung ohne Laravel
-
-Der Kern hat keine Framework-Abhängigkeit:
-
-```php
-use Jfrintrop\EnvValidator\EnvValidator;
-use Jfrintrop\EnvValidator\Exceptions\EnvValidationException;
-
-try {
-    $validated = EnvValidator::make([
-        'DB_PORT'  => 'required|integer|between:1,65535',
-        'APP_URL'  => 'required|url',
-    ])->validate();
-} catch (EnvValidationException $e) {
-    fwrite(STDERR, $e->getMessage().PHP_EOL);
-    exit(1);
-}
-```
-
-### Ein explizites Array validieren
-
-Praktisch für Tests oder um eine selbst geparste `.env` zu prüfen:
-
-```php
-$valid = EnvValidator::make(['DB_PORT' => 'required|integer'])
-    ->using(['DB_PORT' => '5432'])
-    ->passes(); // true
-```
-
 ## Umgebungsspezifische Regeln
 
-Manche Regeln ergeben nur in einer Umgebung Sinn – Production sollte nie mit
-`APP_DEBUG=true` laufen, und ein Live-Zahlungsschlüssel ist nur dort Pflicht. Lege
-zusätzliche Regeln pro Umgebung fest; sie gelten, wenn `APP_ENV` passt, und
-**ersetzen** die Basisregel derselben Variable:
+Manche Regeln ergeben nur in einer Umgebung Sinn – Production sollte nie mit `APP_DEBUG=true` laufen, und ein Live-Zahlungsschlüssel ist nur dort Pflicht. Lege zusätzliche Regeln pro Umgebung fest; sie gelten, wenn `APP_ENV` passt, und **ersetzen** die Basisregel derselben Variable:
 
 ```php
 // config/env-validator.php
@@ -232,15 +123,11 @@ EnvValidator::make([...])
     ->validate();
 ```
 
-Variablen, die nur in einem Umgebungsblock vorkommen, gelten für den Strict-Modus und
-`env:example` trotzdem als deklariert.
+Variablen, die nur in einem Umgebungsblock vorkommen, gelten für den Strict-Modus und `env:example` trotzdem als deklariert.
 
 ## Strict-Modus
 
-Der Strict-Modus fängt das umgekehrte Problem ab: Variablen, die *vorhanden, aber nicht
-im Schema deklariert* sind – Tippfehler, Copy-Paste-Überbleibsel, Konfigurationsdrift. Er
-braucht eine explizite Quelle (die laufende Umgebung enthält fremde Systemvariablen wie
-`PATH`), übergib also die zu prüfende Menge über `using()`:
+Der Strict-Modus fängt das umgekehrte Problem ab: Variablen, die *vorhanden, aber nicht im Schema deklariert* sind – Tippfehler, Copy-Paste-Überbleibsel, Konfigurationsdrift. Er braucht eine explizite Quelle (die laufende Umgebung enthält fremde Systemvariablen wie `PATH`), übergib also die zu prüfende Menge über `using()`:
 
 ```php
 EnvValidator::make([
@@ -254,21 +141,89 @@ EnvValidator::make([
 // EnvValidationException: The DB_PROT environment variable is not declared in the schema.
 ```
 
-In Laravel prüfst du deine `.env`-Datei direkt per CLI gegen das Schema – ideal
-als CI-Check:
+In Laravel prüfst du deine `.env`-Datei direkt per CLI – das prüft sowohl die Werte *als auch*, dass die Datei keine Variable enthält, die in deinem Schema fehlt:
 
 ```bash
 php artisan env:validate --strict                 # prüft .env
 php artisan env:validate --strict --env-file=.env.production
 ```
 
-Das prüft sowohl die Werte *als auch*, dass die Datei keine Variable enthält, die in
-deinem Schema fehlt.
+## Die .env.example-Datei
+
+### Generieren
+
+Halte deine `.env.example` mit dem Schema synchron, indem du sie aus denselben Regeln erzeugst:
+
+```bash
+php artisan env:example
+```
+
+```ini
+# Generated by env-validator — the environment variables this app expects.
+
+# required · one of: local, staging, production
+APP_ENV=local
+
+# required · boolean (true/false)
+APP_DEBUG=false
+
+# required · URL
+APP_URL=
+
+# required · integer · between 1 and 65535
+DB_PORT=
+
+# optional · email
+MAIL_FROM=
+```
+
+Jede Variable erhält einen Kommentar mit ihren Einschränkungen und einen sinnvollen Platzhalter (den ersten erlaubten Wert bei `in:`-Regeln, `false` bei Booleans).
+
+### Auf Drift prüfen
+
+Lass in der CI den Build fehlschlagen, wenn die `.env.example` nicht mehr genau die Variablen deines Schemas auflistet:
+
+```bash
+php artisan env:example --check
+php artisan env:example --check --path=.env.dist
+```
+
+```
+  ERROR  .env.example is out of sync with the schema:
+
+  ⇂ DB_PORT is declared in the schema but missing from the file.
+  ⇂ OLD_VAR is in the file but not declared in the schema.
+```
+
+Verglichen werden nur Variablennamen; von Hand angepasste Platzhalter und Kommentare bleiben unberührt.
+
+## CI-Ausgabeformate
+
+`env:validate` und `env:example --check` akzeptieren `--format`:
+
+- `text` (Standard) – menschenlesbare Ausgabe.
+- `json` – maschinenlesbar, für Skripte und Dashboards:
+  ```json
+  {
+      "valid": false,
+      "checked": 5,
+      "errors": {
+          "DB_PORT": ["The DB_PORT environment variable must be an integer."]
+      }
+  }
+  ```
+  `env:example --check` liefert stattdessen die Listen `missing` und `undeclared`.
+- `github` – [Workflow-Befehle](https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions), die als Annotationen am Pull Request erscheinen. Ist alles gültig, wird nichts ausgegeben.
+
+```yaml
+# .github/workflows/env.yml
+- run: php artisan env:validate --strict --env-file=.env.production --format=github
+- run: php artisan env:example --check --format=github
+```
 
 ## Typisierte Werte
 
-Umgebungsvariablen kommen als Strings an. Rufe `->cast()` auf, damit `validate()`
-sie mit ihrem nativen PHP-Typ zurückgibt, abgeleitet aus den Regeln:
+Umgebungsvariablen kommen als Strings an. Rufe `->cast()` auf, damit `validate()` sie mit ihrem nativen PHP-Typ zurückgibt, abgeleitet aus den Regeln:
 
 ```php
 $config = EnvValidator::make([
@@ -286,8 +241,46 @@ $config['TIMEOUT'];   // float  2.5
 - `numeric` → `int`, wenn der Wert eine ganze Zahl ist, sonst `float`
 - `boolean` → `bool`
 
-Casting ist standardmäßig deaktiviert; ohne Opt-in werden die rohen, validierten
-Strings zurückgegeben. Nullable-Variablen, die fehlen, bleiben `null`.
+Casting ist standardmäßig deaktiviert; ohne Opt-in werden die rohen, validierten Strings zurückgegeben. Nullable-Variablen, die fehlen, bleiben `null`.
+
+## Eigene Meldungen
+
+```php
+EnvValidator::make(['DB_PORT' => 'required|integer|between:1,65535'])
+    ->messages([
+        'DB_PORT.between' => 'DB_PORT must be a valid TCP port (1-65535).',
+    ])
+    ->validate();
+```
+
+In Laravel trägst du sie unter `messages` in `config/env-validator.php` ein.
+
+## Verwendung ohne Laravel
+
+Der Kern hat keine Framework-Abhängigkeit:
+
+```php
+use Jfrintrop\EnvValidator\EnvValidator;
+use Jfrintrop\EnvValidator\Exceptions\EnvValidationException;
+
+try {
+    $validated = EnvValidator::make([
+        'DB_PORT'  => 'required|integer|between:1,65535',
+        'APP_URL'  => 'required|url',
+    ])->validate();
+} catch (EnvValidationException $e) {
+    fwrite(STDERR, $e->getMessage().PHP_EOL);
+    exit(1);
+}
+```
+
+Um ein explizites Array statt der laufenden Umgebung zu validieren – praktisch für Tests oder eine selbst geparste `.env`:
+
+```php
+$valid = EnvValidator::make(['DB_PORT' => 'required|integer'])
+    ->using(['DB_PORT' => '5432'])
+    ->passes(); // true
+```
 
 ## API
 
@@ -308,15 +301,9 @@ Strings zurückgegeben. Nullable-Variablen, die fehlen, bleiben `null`.
 | `->example(?string $header): string` | Rendert das Schema als `.env.example`-Inhalt. |
 | `->exampleDrift(string $contents): array` | Vergleicht eine vorhandene `.env.example` mit dem Schema (`missing` / `undeclared`). |
 
-### Eigene Meldungen
+## Warum nicht ein anderes Paket?
 
-```php
-EnvValidator::make(['DB_PORT' => 'required|integer|between:1,65535'])
-    ->messages([
-        'DB_PORT.between' => 'DB_PORT must be a valid TCP port (1-65535).',
-    ])
-    ->validate();
-```
+Andere Laravel-Pakete validieren ebenfalls `.env`-Dateien – zum Beispiel [mathiasgrimm/laravel-env-validator](https://packagist.org/packages/mathiasgrimm/laravel-env-validator) (letztes Release 2016), [melihovv/laravel-env-validator](https://packagist.org/packages/melihovv/laravel-env-validator) (2020) und [teun/laravel-environment-config-validator](https://packagist.org/packages/teun/laravel-environment-config-validator). `env-validator` ist für aktuelles Laravel (10–12) und PHP 8.1+ gebaut und bringt Dinge mit, die man sonst selbst skripten muss: Regeln pro Umgebung, `.env.example`-Generierung mit CI-Drift-Check, Strict-Modus, typisierte Ergebnisse und einen framework-freien Kern.
 
 ## Tests
 
@@ -330,7 +317,6 @@ composer test
 Ideen in Überlegung:
 
 - Ein Production-Safety-Preset (`APP_DEBUG`, `APP_KEY`, Platzhalterwerte).
-- `--format=json|github`-Ausgabe für CI-Annotationen.
 - Maskierung von Werten als sensibel markierter Variablen in Fehlermeldungen.
 
 Du hast eine Idee oder einen fehlenden Regel-Helper? Eröffne ein Issue – Beiträge sind willkommen.
