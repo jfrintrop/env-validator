@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#0d1117"/>
+  <rect x="0" y="0" width="1280" height="8" fill="#ff6b45"/>
+  <text x="80" y="140" font-family="DejaVu Sans, Arial, sans-serif" font-size="68" font-weight="700" fill="#e6edf3">Env Validator</text>
+  <text x="80" y="200" font-family="DejaVu Sans, Arial, sans-serif" font-size="32" fill="#9aa5b1">Fail fast on bad environment variables.</text>
+  <text x="80" y="244" font-family="DejaVu Sans, Arial, sans-serif" font-size="26" fill="#9aa5b1">Laravel validation rules · per-environment · CI-ready</text>
+  <rect x="80" y="290" width="1120" height="250" rx="14" fill="#010409" stroke="#2a313a" stroke-width="2"/>
+  <circle cx="114" cy="322" r="7" fill="#ff5f56"/><circle cx="138" cy="322" r="7" fill="#ffbd2e"/><circle cx="162" cy="322" r="7" fill="#27c93f"/>
+  <g font-family="DejaVu Sans Mono, monospace" font-size="25">
+    <text x="112" y="378" fill="#94a3b8">$ php artisan env:validate</text>
+    <text x="112" y="428" fill="#fca5a5">Environment validation failed with 2 problems:</text>
+    <text x="112" y="468" fill="#fca5a5">  - APP_ENV must be one of: local, staging, production.</text>
+    <text x="112" y="508" fill="#fca5a5">  - DB_PORT must be an integer.</text>
+  </g>
+  <text x="80" y="600" font-family="DejaVu Sans Mono, monospace" font-size="24" fill="#ff6b45">composer require jfrintrop/env-validator</text>
+</svg>

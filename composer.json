@@ -9,7 +9,13 @@
         "validation",
         "laravel",
         "ci",
-        "fail-fast"
+        "fail-fast",
+        "php",
+        "laravel-package",
+        "env-validator",
+        "environment-variables",
+        "env-example",
+        "validator"
     ],
     "homepage": "https://github.com/jfrintrop/env-validator",
     "license": "MIT",

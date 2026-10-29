@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jfrintrop.github.io/env-validator/sitemap.xml
