@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Env Validator – fail fast on bad environment variables</title>
+<meta name="description" content="Validate environment variables against a schema with Laravel validation rules — fail fast at boot or in CI. Per-environment rules, strict mode, .env.example generation.">
+<meta property="og:title" content="Env Validator for PHP & Laravel">
+<meta property="og:description" content="Fail fast on missing or mistyped environment variables, using the Laravel validation rules you already know.">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1f24; --muted: #5b6573; --card: #f5f7fa; --border: #dde2e8;
+    --accent: #e0431f; --code-bg: #0f172a; --code-fg: #e2e8f0; --err: #fca5a5; --ok: #86efac; --dim: #94a3b8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d1117; --fg: #e6edf3; --muted: #9aa5b1; --card: #161b22; --border: #2a313a; --accent: #ff6b45; --code-bg: #010409; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 64px 0 32px; }
+  h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.15; margin: 0 0 16px; }
+  h1 span { color: var(--accent); }
+  p.lead { font-size: 1.15rem; color: var(--muted); margin: 0 0 24px; max-width: 640px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid var(--border); color: var(--fg); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; }
+  .install { margin-top: 24px; }
+  pre { background: var(--code-bg); color: var(--code-fg); padding: 16px; border-radius: 10px; overflow-x: auto; margin: 0; }
+  pre .err { color: var(--err); } pre .ok { color: var(--ok); } pre .dim { color: var(--dim); }
+  section { padding: 32px 0; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tab { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer; font: inherit; font-size: .9rem; }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .panel[hidden] { display: none; }
+  .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  footer { padding: 32px 0 64px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--border); }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Fail fast on bad <span>environment variables</span></h1>
+    <p class="lead">Declare the variables your PHP or Laravel app needs — types, allowed values, per-environment rules — using the validation rules you already know. Catch mistakes at boot or in CI, not three screens into a user flow.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jfrintrop/env-validator">View on GitHub</a>
+      <a class="btn" href="https://packagist.org/packages/jfrintrop/env-validator">Packagist</a>
+      <a class="btn" href="https://github.com/jfrintrop/env-validator/blob/main/README.de.md">Deutsch</a>
+    </div>
+    <div class="install"><pre>composer require jfrintrop/env-validator</pre></div>
+  </header>
+
+  <section aria-labelledby="demo">
+    <h2 id="demo">See it work</h2>
+    <p class="sub">Real output from the package — pick a scenario.</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t1">Validate</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2">Per environment</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3">Strict mode</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p4" id="t4">.env.example</button>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p1" aria-labelledby="t1">
+      <div class="label">Schema</div>
+<pre>EnvValidator::make([
+    'APP_ENV'   =&gt; 'required|in:local,staging,production',
+    'APP_DEBUG' =&gt; 'required|boolean',
+    'DB_PORT'   =&gt; 'required|integer|between:1,65535',
+])-&gt;validate();</pre>
+      <div class="label">Environment: APP_ENV=prod, DB_PORT=abc</div>
+<pre><span class="err">Environment validation failed with 2 problems:
+  - The APP_ENV environment variable must be one of: local, staging, production.
+  - The DB_PORT environment variable must be an integer.</span></pre>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+      <div class="label">Schema</div>
+<pre>EnvValidator::make([
+    'APP_ENV'    =&gt; 'required',
+    'APP_DEBUG'  =&gt; 'required|boolean',
+    'STRIPE_KEY' =&gt; 'nullable|string',
+])-&gt;whenEnvironment('production', [
+    'APP_DEBUG'  =&gt; 'required|declined',
+    'STRIPE_KEY' =&gt; 'required|starts_with:sk_live_',
+])-&gt;validate();</pre>
+      <div class="label">Environment: APP_ENV=production, APP_DEBUG=true</div>
+<pre><span class="err">Environment validation failed with 2 problems:
+  - The APP_DEBUG environment variable must be disabled (false, 0, no, off).
+  - The STRIPE_KEY environment variable is required but missing.</span></pre>
+      <div class="label">Same environment with APP_ENV=local</div>
+<pre><span class="ok">Environment is valid.</span></pre>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+      <div class="label">Lint a .env file</div>
+<pre>php artisan env:validate --strict --env-file=.env.production</pre>
+      <div class="label">The file contains DB_PROT, a typo of DB_PORT</div>
+<pre><span class="err">Environment validation failed with 1 problem:
+  - The DB_PROT environment variable is not declared in the schema.</span></pre>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p4" aria-labelledby="t4" hidden>
+      <div class="label">Generate from the schema</div>
+<pre>php artisan env:example</pre>
+<pre><span class="dim"># required · one of: local, staging, production</span>
+APP_ENV=local
+
+<span class="dim"># required · boolean (true/false)</span>
+APP_DEBUG=false
+
+<span class="dim"># required · integer · between 1 and 65535</span>
+DB_PORT=</pre>
+      <div class="label">Guard against drift in CI</div>
+<pre>php artisan env:example --check</pre>
+<pre><span class="err">.env.example is out of sync with the schema:
+  ⇂ DB_PORT is declared in the schema but missing from the file.
+  ⇂ OLD_VAR is in the file but not declared in the schema.</span></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="features">
+    <h2 id="features">Why use it</h2>
+    <div class="grid" style="margin-top:16px">
+      <div class="card"><h3>Rules you know</h3><p>Laravel validation syntax under the hood — no new DSL.</p></div>
+      <div class="card"><h3>Env-aware</h3><p>Handles <code>true</code>/<code>false</code>/<code>null</code>/<code>empty</code> and quoted values like <code>env()</code> does.</p></div>
+      <div class="card"><h3>Per-environment rules</h3><p>Stricter requirements for production, relaxed for local.</p></div>
+      <div class="card"><h3>CI friendly</h3><p>Proper exit codes for <code>env:validate</code> and <code>env:example --check</code>.</p></div>
+      <div class="card"><h3>Typed values</h3><p>Opt in to <code>int</code>, <code>float</code> and <code>bool</code> results.</p></div>
+      <div class="card"><h3>Works standalone</h3><p>The core needs no framework — any PHP 8.1+ project.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    MIT licensed · <a href="https://github.com/jfrintrop/env-validator">github.com/jfrintrop/env-validator</a>
+  </footer>
+</div>
+<script>
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+    });
+  });
+</script>
+</body>
+</html>

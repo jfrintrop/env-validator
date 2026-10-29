@@ -1,5 +1,7 @@
 # Env Validator
 
+**English** | [Deutsch](README.de.md)
+
 [![tests](https://github.com/jfrintrop/env-validator/actions/workflows/tests.yml/badge.svg)](https://github.com/jfrintrop/env-validator/actions/workflows/tests.yml)
 [![Packagist Version](https://img.shields.io/packagist/v/jfrintrop/env-validator.svg)](https://packagist.org/packages/jfrintrop/env-validator)
 [![License](https://img.shields.io/github/license/jfrintrop/env-validator.svg)](LICENSE)
@@ -33,6 +35,23 @@ Environment validation failed with 2 problems:
 - **Fail fast, everywhere.** Validate automatically on boot for web requests, or run `php artisan env:validate` as a one-line CI gate with a proper exit code.
 - **Works standalone.** No framework required — the core builds its own validator, so you can use it in any PHP project, not just Laravel.
 - **Tiny and focused.** One job, done well. No config sprawl.
+
+**[Live demo →](https://jfrintrop.github.io/env-validator/)**
+
+## Why not another package?
+
+Other Laravel packages validate `.env` files too — for example
+[mathiasgrimm/laravel-env-validator](https://packagist.org/packages/mathiasgrimm/laravel-env-validator)
+(last release 2016), [melihovv/laravel-env-validator](https://packagist.org/packages/melihovv/laravel-env-validator)
+(2020) and [teun/laravel-environment-config-validator](https://packagist.org/packages/teun/laravel-environment-config-validator).
+`env-validator` is built for current Laravel (10–12) and PHP 8.1+, and adds things
+you usually have to script yourself:
+
+- **Per-environment rules** — e.g. `STRIPE_KEY` only required in `production`.
+- **`.env.example` generation *and* a CI drift check** from the same schema.
+- **Strict mode** to catch typos and stray variables.
+- **Typed results** (`int`, `float`, `bool`) via `->cast()`.
+- **Framework-free core** — usable outside Laravel.
 
 ## Installation
 
@@ -132,6 +151,26 @@ php artisan env:example --path=.env.dist     # write somewhere else
 php artisan env:example --force              # overwrite an existing file
 ```
 
+### Keep `.env.example` from drifting
+
+In CI, fail the build when `.env.example` no longer lists exactly the variables in
+your schema:
+
+```bash
+php artisan env:example --check
+php artisan env:example --check --path=.env.dist
+```
+
+```
+  ERROR  .env.example is out of sync with the schema:
+
+  ⇂ DB_PORT is declared in the schema but missing from the file.
+  ⇂ OLD_VAR is in the file but not declared in the schema.
+```
+
+Only variable names are compared, so the placeholder values and comments you've
+edited by hand are left alone. Exit code is `1` on drift.
+
 ## Usage without Laravel
 
 The core has no framework dependency:
@@ -160,6 +199,41 @@ $valid = EnvValidator::make(['DB_PORT' => 'required|integer'])
     ->using(['DB_PORT' => '5432'])
     ->passes(); // true
 ```
+
+## Environment-specific rules
+
+Some rules only make sense in one environment — production should never run with
+`APP_DEBUG=true`, and a live payment key is only required there. Declare extra
+rules per environment; they apply when `APP_ENV` matches and **replace** the base
+rule for the same variable:
+
+```php
+// config/env-validator.php
+'rules' => [
+    'APP_ENV'    => 'required|in:local,staging,production',
+    'APP_DEBUG'  => 'required|boolean',
+    'STRIPE_KEY' => 'nullable|string',
+],
+
+'environments' => [
+    'production' => [
+        'APP_DEBUG'  => 'required|declined',              // must be false
+        'STRIPE_KEY' => 'required|starts_with:sk_live_',
+    ],
+],
+```
+
+Without Laravel:
+
+```php
+EnvValidator::make([...])
+    ->whenEnvironment(['staging', 'production'], ['SENTRY_DSN' => 'required|url'])
+    ->environmentKey('APP_ENV') // the default
+    ->validate();
+```
+
+Variables that only appear in an environment block still count as declared for
+strict mode and `env:example`.
 
 ## Strict mode
 
@@ -223,12 +297,16 @@ opt in. Nullable variables that are absent stay `null`.
 | `->using(array $source)` | Validate against this array instead of the live environment. |
 | `->cast(bool $cast = true)` | Return typed values from `validate()` (`int`, `float`, `bool`). |
 | `->strict(bool $strict = true)` | Also fail on source variables not declared in the schema (needs `using()`). |
+| `->whenEnvironment(string\|array $envs, array $rules)` | Apply extra rules only when the current environment matches. |
+| `->environments(array $map)` | Register several environment rule sets at once (keyed by name). |
+| `->environmentKey(string $key)` | Variable holding the environment name (default `APP_ENV`). |
 | `->addRules(array $rules)` | Merge extra rules into the schema. |
 | `->messages(array $messages)` | Override default error messages (keyed by `VAR.rule` or `rule`). |
 | `->validate(): array` | Validate; returns the validated values, throws `EnvValidationException` on failure. |
 | `->passes(): bool` / `->fails(): bool` | Boolean check without throwing. |
 | `->errors(): array` | The error messages, keyed by variable name. |
 | `->example(?string $header): string` | Render the schema as `.env.example` contents. |
+| `->exampleDrift(string $contents): array` | Compare an existing `.env.example` with the schema (`missing` / `undeclared`). |
 
 ### Custom messages
 
@@ -249,8 +327,13 @@ composer test
 
 ## Roadmap
 
-The core feature set is complete. Have an idea or a missing rule helper? Open an
-issue — contributions are welcome.
+Ideas under consideration:
+
+- A production safety preset (`APP_DEBUG`, `APP_KEY`, placeholder values).
+- `--format=json|github` output for CI annotations.
+- Masking values of variables marked as sensitive in error output.
+
+Have an idea or a missing rule helper? Open an issue — contributions are welcome.
 
 ## Contributing
 
