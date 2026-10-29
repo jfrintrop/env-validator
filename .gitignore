@@ -5,3 +5,4 @@ composer.lock
 .DS_Store
 .idea/
 *.cache
+/.claude/settings.local.json
