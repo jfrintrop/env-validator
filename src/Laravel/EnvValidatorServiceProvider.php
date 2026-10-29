@@ -20,6 +20,7 @@ final class EnvValidatorServiceProvider extends ServiceProvider
             $config = $app['config']->get('env-validator', []);
 
             return EnvValidator::make($config['rules'] ?? [])
+                ->environments($config['environments'] ?? [])
                 ->messages($config['messages'] ?? []);
         });
 

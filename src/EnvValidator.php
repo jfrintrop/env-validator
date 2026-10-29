@@ -37,6 +37,11 @@ final class EnvValidator
 
     private bool $strict = false;
 
+    private string $environmentKey = 'APP_ENV';
+
+    /** @var array<int, array{0: array<int, string>, 1: array<string, string|array<int, mixed>>}> */
+    private array $environmentRules = [];
+
     private ?ValidatorContract $lastValidator = null;
 
     /**
@@ -75,6 +80,47 @@ final class EnvValidator
     public function addRules(array $rules): self
     {
         $this->rules = array_merge($this->rules, $rules);
+
+        return $this;
+    }
+
+    /**
+     * Apply extra rules only when the current environment matches. A rule given
+     * here replaces the base rule for the same variable.
+     *
+     *   ->whenEnvironment('production', ['STRIPE_KEY' => 'required|starts_with:sk_live_'])
+     *
+     * @param string|array<int, string>                       $environments
+     * @param array<string, string|array<int, mixed>> $rules
+     */
+    public function whenEnvironment(string|array $environments, array $rules): self
+    {
+        $this->environmentRules[] = [(array) $environments, $rules];
+
+        return $this;
+    }
+
+    /**
+     * Register several environment-specific rule sets at once, keyed by
+     * environment name (the shape of the `environments` config key).
+     *
+     * @param array<string, array<string, string|array<int, mixed>>> $environments
+     */
+    public function environments(array $environments): self
+    {
+        foreach ($environments as $name => $rules) {
+            $this->whenEnvironment((string) $name, $rules);
+        }
+
+        return $this;
+    }
+
+    /**
+     * The variable that holds the current environment name (default `APP_ENV`).
+     */
+    public function environmentKey(string $key): self
+    {
+        $this->environmentKey = $key;
 
         return $this;
     }
@@ -154,7 +200,23 @@ final class EnvValidator
      */
     public function example(?string $header = null): string
     {
-        return EnvExampleGenerator::fromRules($this->rules)->generate($header);
+        return EnvExampleGenerator::fromRules($this->declaredRules())->generate($header);
+    }
+
+    /**
+     * Compare the contents of an existing `.env.example` with the schema.
+     *
+     * @return array{missing: array<int, string>, undeclared: array<int, string>}
+     */
+    public function exampleDrift(string $contents): array
+    {
+        $declared = array_keys($this->declaredRules());
+        $present = EnvFile::keys($contents);
+
+        return [
+            'missing' => array_values(array_diff($declared, $present)),
+            'undeclared' => array_values(array_diff($present, $declared)),
+        ];
     }
 
     public function passes(): bool
@@ -198,7 +260,7 @@ final class EnvValidator
         }
 
         $errors = [];
-        foreach (array_diff($keys, array_keys($this->rules)) as $key) {
+        foreach (array_diff($keys, array_keys($this->declaredRules())) as $key) {
             $errors[$key] = [sprintf('The %s environment variable is not declared in the schema.', $key)];
         }
 
@@ -238,7 +300,7 @@ final class EnvValidator
      */
     private function ruleNames(string $key): array
     {
-        $ruleSet = $this->rules[$key] ?? [];
+        $ruleSet = $this->effectiveRules()[$key] ?? [];
         $parts = is_string($ruleSet) ? explode('|', $ruleSet) : $ruleSet;
 
         $names = [];
@@ -262,16 +324,57 @@ final class EnvValidator
         return preg_match('/^[+-]?\d+$/', $string) === 1 ? (int) $string : (float) $string;
     }
 
+    /**
+     * The base rules with those of the matching environments applied on top.
+     *
+     * @return array<string, string|array<int, mixed>>
+     */
+    private function effectiveRules(): array
+    {
+        if ($this->environmentRules === []) {
+            return $this->rules;
+        }
+
+        $current = ($this->env ?? new Env())->get($this->environmentKey);
+        $current = is_scalar($current) ? (string) $current : null;
+
+        $rules = $this->rules;
+        foreach ($this->environmentRules as [$names, $extra]) {
+            if ($current !== null && in_array($current, $names, true)) {
+                $rules = array_merge($rules, $extra);
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Every variable the schema knows about, regardless of the current
+     * environment — what strict mode and the example file are measured against.
+     *
+     * @return array<string, string|array<int, mixed>>
+     */
+    private function declaredRules(): array
+    {
+        $rules = $this->rules;
+        foreach ($this->environmentRules as [, $extra]) {
+            $rules += array_diff_key($extra, $rules);
+        }
+
+        return $rules;
+    }
+
     private function runValidator(): ValidatorContract
     {
         $env = $this->env ?? new Env();
-        $data = $env->only(array_keys($this->rules));
+        $rules = $this->effectiveRules();
+        $data = $env->only(array_keys($rules));
 
-        $validator = $this->factory()->make($data, $this->rules, $this->messages);
+        $validator = $this->factory()->make($data, $rules, $this->messages);
 
         // Show variable names verbatim (APP_ENV, not "app env") in messages.
         $validator->addCustomAttributes(
-            array_combine(array_keys($this->rules), array_keys($this->rules))
+            array_combine(array_keys($rules), array_keys($rules))
         );
 
         $this->lastValidator = $validator;

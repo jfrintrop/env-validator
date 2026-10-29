@@ -42,6 +42,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Environment-specific rules
+    |--------------------------------------------------------------------------
+    |
+    | Extra rules that apply only when APP_ENV matches the given name. A rule
+    | here replaces the base rule for the same variable.
+    |
+    */
+
+    'environments' => [
+        // 'production' => [
+        //     'APP_DEBUG'  => 'required|declined',
+        //     'STRIPE_KEY' => 'required|starts_with:sk_live_',
+        // ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Custom messages
     |--------------------------------------------------------------------------
     |

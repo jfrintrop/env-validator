@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Artisan;
+
 beforeEach(function () {
     config()->set('env-validator.rules', [
         'APP_ENV' => 'required|in:local,production',
@@ -48,4 +50,33 @@ it('warns when no schema is configured', function () {
 
     $this->artisan('env:example --print')
         ->assertExitCode(0);
+});
+
+it('passes --check when the file matches the schema', function () {
+    $path = sys_get_temp_dir().'/env-validator-test-'.uniqid().'.example';
+    file_put_contents($path, "APP_ENV=local\nDB_PORT=\n");
+
+    $this->artisan('env:example', ['--path' => $path, '--check' => true])
+        ->assertExitCode(0);
+
+    unlink($path);
+});
+
+it('fails --check and lists the drift', function () {
+    $path = sys_get_temp_dir().'/env-validator-test-'.uniqid().'.example';
+    file_put_contents($path, "APP_ENV=local\nOLD_VAR=1\n");
+
+    $exit = Artisan::call('env:example', ['--path' => $path, '--check' => true]);
+    $output = Artisan::output();
+
+    expect($exit)->toBe(1)
+        ->and($output)->toContain('DB_PORT')
+        ->and($output)->toContain('OLD_VAR');
+
+    unlink($path);
+});
+
+it('fails --check when the file does not exist', function () {
+    $this->artisan('env:example', ['--path' => '/nonexistent/.env.example', '--check' => true])
+        ->assertExitCode(1);
 });

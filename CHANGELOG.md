@@ -5,6 +5,20 @@ All notable changes to `env-validator` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0]
+
+### Added
+- Environment-specific rules: `EnvValidator::whenEnvironment()`, `environments()`
+  and `environmentKey()`, plus an `environments` key in the Laravel config. Rules
+  apply when `APP_ENV` matches and replace the base rule for that variable.
+- `php artisan env:example --check` and `EnvValidator::exampleDrift()` to fail CI
+  when `.env.example` drifts from the schema.
+
+### Changed
+- Default messages for the `accepted` and `declined` rules.
+- `env:example` and strict mode also include variables declared only in an
+  environment block.
+
 ## [1.3.0]
 
 ### Added

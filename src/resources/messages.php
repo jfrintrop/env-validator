@@ -14,6 +14,8 @@ declare(strict_types=1);
 return [
     'required' => 'The :attribute environment variable is required but missing.',
     'boolean' => 'The :attribute environment variable must be a boolean (true/false, 1/0).',
+    'accepted' => 'The :attribute environment variable must be enabled (true, 1, yes, on).',
+    'declined' => 'The :attribute environment variable must be disabled (false, 0, no, off).',
     'integer' => 'The :attribute environment variable must be an integer.',
     'numeric' => 'The :attribute environment variable must be a number.',
     'string' => 'The :attribute environment variable must be a string.',

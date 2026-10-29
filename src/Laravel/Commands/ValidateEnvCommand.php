@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Jfrintrop\EnvValidator\Laravel\Commands;
 
 use Illuminate\Console\Command;
+use Jfrintrop\EnvValidator\EnvFile;
 use Jfrintrop\EnvValidator\EnvValidator;
 
 final class ValidateEnvCommand extends Command
@@ -36,8 +37,9 @@ final class ValidateEnvCommand extends Command
             }
 
             $validator = EnvValidator::make($rules)
+                ->environments((array) ($config['environments'] ?? []))
                 ->messages((array) ($config['messages'] ?? []))
-                ->using($this->parseEnvFile($file))
+                ->using(EnvFile::parse((string) file_get_contents($file)))
                 ->strict();
         }
 
@@ -57,33 +59,6 @@ final class ValidateEnvCommand extends Command
         $this->components->bulletList(array_merge(...array_values($errors)));
 
         return self::FAILURE;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function parseEnvFile(string $path): array
-    {
-        $values = [];
-
-        foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
-            $line = trim($line);
-
-            if ($line === '' || str_starts_with($line, '#') || ! str_contains($line, '=')) {
-                continue;
-            }
-
-            [$key, $value] = explode('=', $line, 2);
-            $key = trim($key);
-
-            if (str_starts_with($key, 'export ')) {
-                $key = trim(substr($key, 7));
-            }
-
-            $values[$key] = trim($value);
-        }
-
-        return $values;
     }
 
     private function resolvePath(string $path): string
