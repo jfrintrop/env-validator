@@ -73,6 +73,7 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2">Per environment</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3">Strict mode</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="p4" id="t4">.env.example</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p5" id="t5">CI formats</button>
     </div>
 
     <div class="panel" role="tabpanel" id="p1" aria-labelledby="t1">
@@ -130,6 +131,30 @@ DB_PORT=</pre>
 <pre><span class="err">.env.example is out of sync with the schema:
   ⇂ DB_PORT is declared in the schema but missing from the file.
   ⇂ OLD_VAR is in the file but not declared in the schema.</span></pre>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p5" aria-labelledby="t5" hidden>
+      <div class="label">JSON for scripts and dashboards</div>
+<pre>php artisan env:validate --format=json</pre>
+<pre>{
+    "valid": <span class="err">false</span>,
+    "checked": 2,
+    "errors": {
+        "APP_ENV": [
+            "The APP_ENV environment variable must be one of: local, staging, production."
+        ],
+        "DB_PORT": [
+            "The DB_PORT environment variable must be an integer."
+        ]
+    }
+}</pre>
+      <div class="label">GitHub Actions annotations on the pull request</div>
+<pre>php artisan env:validate --strict --env-file=.env.production --format=github</pre>
+<pre><span class="err">::error file=.env.production,title=Environment validation::The APP_ENV environment variable must be one of: local, staging, production.
+::error file=.env.production,title=Environment validation::The DB_PORT environment variable must be an integer.</span></pre>
+      <div class="label">Workflow step</div>
+<pre>- run: php artisan env:validate --strict --env-file=.env.production --format=github
+- run: php artisan env:example --check --format=github</pre>
     </div>
   </section>
 
