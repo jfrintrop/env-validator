@@ -5,6 +5,14 @@ All notable changes to `env-validator` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0]
+
+### Added
+- `--format=text|json|github` for `env:validate` and `env:example --check`: JSON
+  reports for scripts and GitHub Actions annotations for pull requests. An
+  unknown format exits with code `2`.
+- `Report` helper that renders these formats.
+
 ## [1.4.0]
 
 ### Added
